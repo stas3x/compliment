@@ -1,0 +1,1265 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="color-scheme" content="dark" />
+  <title>A little universe for you</title>
+  <style>
+    :root {
+      --pink: #ff9dc9;
+      --pink-soft: rgba(255, 157, 201, 0.72);
+      --pink-faint: rgba(255, 157, 201, 0.16);
+      --bg: #000;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: #fff;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: geometricPrecision;
+      overscroll-behavior: none;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -20%;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 46%, rgba(255, 105, 180, 0.075), transparent 24%),
+        radial-gradient(circle at 50% 50%, rgba(255, 157, 201, 0.035), transparent 46%);
+      animation: breathe-bg 7s ease-in-out infinite;
+      z-index: 0;
+    }
+
+    @keyframes breathe-bg {
+      0%, 100% { opacity: 0.65; transform: scale(0.96); }
+      50% { opacity: 1; transform: scale(1.04); }
+    }
+
+    #scene {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+      z-index: 1;
+    }
+
+    #scene.ready { opacity: 1; }
+
+    .layer {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      display: grid;
+      place-items: center;
+      padding: max(24px, env(safe-area-inset-top)) max(22px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(22px, env(safe-area-inset-left));
+      transition: opacity 0.7s ease, visibility 0.7s ease;
+    }
+
+    .layer.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .intro-inner,
+    .final-inner {
+      width: min(92vw, 560px);
+      text-align: center;
+    }
+
+    .eyebrow {
+      margin: 0 0 18px;
+      color: rgba(255,255,255,0.5);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 8vw, 58px);
+      line-height: 1.08;
+      font-weight: 500;
+      letter-spacing: -0.035em;
+      text-wrap: balance;
+      text-shadow: 0 0 30px rgba(255, 157, 201, 0.16);
+    }
+
+    .intro-copy {
+      margin: 18px auto 30px;
+      max-width: 35ch;
+      color: rgba(255,255,255,0.55);
+      font-size: 13px;
+      line-height: 1.65;
+      letter-spacing: 0.035em;
+    }
+
+    .outline-button {
+      position: relative;
+      min-width: 142px;
+      min-height: 48px;
+      padding: 13px 25px;
+      border: 1px solid rgba(255, 157, 201, 0.72);
+      border-radius: 999px;
+      background: rgba(10, 3, 7, 0.35);
+      color: #ffd4e7;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow:
+        0 0 0 1px rgba(255, 157, 201, 0.04) inset,
+        0 0 24px rgba(255, 105, 180, 0.08);
+      transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+    }
+
+    .outline-button:hover,
+    .outline-button:focus-visible {
+      outline: none;
+      background: rgba(255, 157, 201, 0.09);
+      box-shadow: 0 0 32px rgba(255, 105, 180, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .outline-button:active { transform: scale(0.97); }
+    .outline-button:disabled { opacity: 0.45; cursor: wait; }
+
+    #status {
+      position: fixed;
+      left: 50%;
+      top: max(18px, env(safe-area-inset-top));
+      z-index: 4;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,0.58);
+      font-size: 10px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      opacity: 0;
+      transition: opacity 0.45s ease;
+      pointer-events: none;
+    }
+
+    #status.visible { opacity: 1; }
+
+    #flash {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(circle at center, rgba(255, 190, 220, 0.18), rgba(255, 157, 201, 0.045) 28%, transparent 60%);
+    }
+
+    #flash.pulse { animation: flash 680ms ease-out; }
+
+    @keyframes flash {
+      0% { opacity: 0; }
+      18% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    #final {
+      align-items: end;
+      padding-bottom: max(32px, calc(env(safe-area-inset-bottom) + 24px));
+      pointer-events: none;
+    }
+
+    .final-inner {
+      opacity: 0;
+      transform: translateY(14px);
+      transition: opacity 1.1s ease, transform 1.1s ease;
+      pointer-events: none;
+    }
+
+    #final.shown .final-inner {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    #message {
+      margin: 0 auto 11px;
+      max-width: 38ch;
+      color: rgba(255,255,255,0.86);
+      font-size: clamp(14px, 3.8vw, 17px);
+      line-height: 1.58;
+      text-wrap: balance;
+      text-shadow: 0 0 22px rgba(255, 157, 201, 0.14);
+    }
+
+    #signature {
+      margin: 0 0 19px;
+      color: rgba(255, 157, 201, 0.82);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+    }
+
+    #soundButton {
+      position: fixed;
+      z-index: 5;
+      top: max(15px, env(safe-area-inset-top));
+      right: max(15px, env(safe-area-inset-right));
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 1px solid rgba(255, 157, 201, 0.42);
+      border-radius: 50%;
+      background: rgba(0,0,0,0.35);
+      color: rgba(255, 210, 231, 0.9);
+      font-size: 15px;
+      cursor: pointer;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.5s ease, background 180ms ease, transform 180ms ease;
+      -webkit-tap-highlight-color: transparent;
+      backdrop-filter: blur(8px);
+    }
+
+    #soundButton.visible { opacity: 1; visibility: visible; }
+    #soundButton:active { transform: scale(0.94); }
+    #soundButton.muted { color: rgba(255,255,255,0.42); border-color: rgba(255,255,255,0.18); }
+
+    #error {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: none;
+      place-items: center;
+      padding: 28px;
+      text-align: center;
+      background: #000;
+    }
+
+    #error.visible { display: grid; }
+    #error p { max-width: 38ch; color: rgba(255,255,255,0.7); line-height: 1.6; }
+
+    @media (max-height: 640px) {
+      #final { padding-bottom: 18px; }
+      #message { font-size: 13px; line-height: 1.45; }
+      #signature { margin-bottom: 12px; }
+      .outline-button { min-height: 43px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      body::before { animation: none; }
+      * { scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <div id="flash"></div>
+  <div id="status">A little universe is forming</div>
+
+  <main id="intro" class="layer">
+    <div class="intro-inner">
+      <p class="eyebrow">Just for you</p>
+      <h1>I have something for you</h1>
+      <p class="intro-copy">A small piece of my universe, made with love.</p>
+      <button id="openButton" class="outline-button" type="button" disabled>Loading…</button>
+    </div>
+  </main>
+
+  <section id="final" class="layer hidden" aria-live="polite">
+    <div class="final-inner">
+      <p id="message"></p>
+      <p id="signature">With love &lt;3</p>
+      <button id="replayButton" class="outline-button" type="button">Watch again</button>
+    </div>
+  </section>
+
+  <button id="soundButton" type="button" aria-label="Mute sound" title="Sound">♫</button>
+
+  <div id="error">
+    <p>This little universe could not start. Please check your internet connection and open the link again.</p>
+  </div>
+
+  <script type="module">
+    const THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.min.js";
+
+    const UI = {
+      canvas: document.querySelector("#scene"),
+      intro: document.querySelector("#intro"),
+      final: document.querySelector("#final"),
+      openButton: document.querySelector("#openButton"),
+      replayButton: document.querySelector("#replayButton"),
+      soundButton: document.querySelector("#soundButton"),
+      message: document.querySelector("#message"),
+      status: document.querySelector("#status"),
+      flash: document.querySelector("#flash"),
+      error: document.querySelector("#error")
+    };
+
+    const CONFIG = {
+      coreCount: 620,
+      orbitCount: 44,
+      nameCount: 1400,
+      starCount: 420,
+      pink: 0xff9dc9,
+      heartOnlyMs: 0,
+      heartNameMs: 12000,
+      wordMs: 2500,
+      wordFlowMs: 900,
+      finaleDelayMs: 1050
+    };
+
+    const MESSAGES = [
+      "You make every day feel warmer and every moment feel special. I’m so lucky to have you in my world.",
+      "With you, even ordinary moments become my favorite memories. You are my comfort, my joy, and my favorite person.",
+      "You bring light into my life in the simplest, most beautiful way. Thank you for being exactly who you are."
+    ];
+
+    const params = new URLSearchParams(location.search);
+    const displayName = "princess";
+    const selectedMessage = Math.min(3, Math.max(1, Number.parseInt(params.get("message") || "1", 10) || 1));
+    UI.message.textContent = MESSAGES[selectedMessage - 1];
+
+    let THREE;
+    let scene;
+    let camera;
+    let renderer;
+    let clock;
+    let corePoints;
+    let orbitPoints;
+    let namePoints;
+    let starPoints;
+    let corePositions;
+    let orbitPositions;
+    let namePositions;
+    let heartTargets;
+    let nameTargets;
+    let wordTargets = {};
+    let stage = "intro";
+    let stageToken = 0;
+    let autoAngle = 0;
+    let lastFrame = performance.now();
+    let dragYaw = 0;
+    let dragPitch = 0;
+    let tiltYaw = 0;
+    let tiltPitch = 0;
+    let pointerActive = false;
+    let pointerX = 0;
+    let pointerY = 0;
+    let activePointers = new Map();
+    let pinchStartDistance = 0;
+    let pinchStartZoom = 1;
+    let zoomScale = 1;
+    let isMuted = false;
+    let visualReady = false;
+    let coreMorph = null;
+
+    class AudioEngine {
+      constructor() {
+        this.context = null;
+        this.master = null;
+        this.ambient = null;
+        this.effects = null;
+        this.started = false;
+        this.sparkleTimer = null;
+      }
+
+      async start() {
+        if (this.started) {
+          if (this.context?.state === "suspended") await this.context.resume();
+          return;
+        }
+
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+
+        this.context = new AudioContextClass();
+        this.master = this.context.createGain();
+        this.ambient = this.context.createGain();
+        this.effects = this.context.createGain();
+        this.master.gain.value = 0.68;
+        this.ambient.gain.value = 0.23;
+        this.effects.gain.value = 0.52;
+        this.ambient.connect(this.master);
+        this.effects.connect(this.master);
+        this.master.connect(this.context.destination);
+
+        const filter = this.context.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.value = 920;
+        filter.Q.value = 0.65;
+        filter.connect(this.ambient);
+
+        const chord = [110, 164.81, 220, 329.63];
+        chord.forEach((frequency, index) => {
+          const oscillator = this.context.createOscillator();
+          const gain = this.context.createGain();
+          const lfo = this.context.createOscillator();
+          const lfoGain = this.context.createGain();
+
+          oscillator.type = index % 2 === 0 ? "sine" : "triangle";
+          oscillator.frequency.value = frequency;
+          oscillator.detune.value = index * 2.5 - 4;
+          gain.gain.value = index === 0 ? 0.055 : 0.026;
+          lfo.type = "sine";
+          lfo.frequency.value = 0.045 + index * 0.014;
+          lfoGain.gain.value = 5 + index * 1.5;
+
+          lfo.connect(lfoGain);
+          lfoGain.connect(oscillator.detune);
+          oscillator.connect(gain);
+          gain.connect(filter);
+          oscillator.start();
+          lfo.start();
+        });
+
+        this.addAirNoise();
+        this.started = true;
+        await this.context.resume();
+        this.scheduleSparkle();
+      }
+
+      addAirNoise() {
+        const duration = 3;
+        const length = Math.floor(this.context.sampleRate * duration);
+        const buffer = this.context.createBuffer(1, length, this.context.sampleRate);
+        const data = buffer.getChannelData(0);
+        let last = 0;
+        for (let i = 0; i < length; i++) {
+          const white = Math.random() * 2 - 1;
+          last = last * 0.985 + white * 0.015;
+          data[i] = last * 0.5;
+        }
+
+        const source = this.context.createBufferSource();
+        const filter = this.context.createBiquadFilter();
+        const gain = this.context.createGain();
+        source.buffer = buffer;
+        source.loop = true;
+        filter.type = "highpass";
+        filter.frequency.value = 1200;
+        gain.gain.value = 0.035;
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ambient);
+        source.start();
+      }
+
+      scheduleSparkle() {
+        clearTimeout(this.sparkleTimer);
+        const delay = 2400 + Math.random() * 3200;
+        this.sparkleTimer = setTimeout(() => {
+          if (!isMuted) this.chime(650 + Math.random() * 500, 0.85, 0.055);
+          this.scheduleSparkle();
+        }, delay);
+      }
+
+      chime(frequency = 760, duration = 0.9, volume = 0.12) {
+        if (!this.context || !this.effects) return;
+        const now = this.context.currentTime;
+        const oscillator = this.context.createOscillator();
+        const gain = this.context.createGain();
+        const filter = this.context.createBiquadFilter();
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency, now);
+        oscillator.frequency.exponentialRampToValueAtTime(frequency * 1.42, now + duration * 0.55);
+        filter.type = "lowpass";
+        filter.frequency.value = 2600;
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(volume, now + 0.035);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        oscillator.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.effects);
+        oscillator.start(now);
+        oscillator.stop(now + duration + 0.05);
+      }
+
+      heartbeat() {
+        if (!this.context || !this.effects) return;
+        const now = this.context.currentTime;
+        [0, 0.18].forEach((offset, index) => {
+          const oscillator = this.context.createOscillator();
+          const gain = this.context.createGain();
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(index === 0 ? 74 : 62, now + offset);
+          oscillator.frequency.exponentialRampToValueAtTime(40, now + offset + 0.16);
+          gain.gain.setValueAtTime(0.0001, now + offset);
+          gain.gain.exponentialRampToValueAtTime(index === 0 ? 0.16 : 0.1, now + offset + 0.018);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.19);
+          oscillator.connect(gain);
+          gain.connect(this.effects);
+          oscillator.start(now + offset);
+          oscillator.stop(now + offset + 0.22);
+        });
+      }
+
+      setMuted(muted) {
+        if (!this.master || !this.context) return;
+        const now = this.context.currentTime;
+        this.master.gain.cancelScheduledValues(now);
+        this.master.gain.setTargetAtTime(muted ? 0 : 0.68, now, 0.04);
+      }
+    }
+
+    const audio = new AudioEngine();
+
+    function formatName(value) {
+      const clean = String(value)
+        .replace(/[<>]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 24);
+      if (!clean) return "Cuttie";
+      return clean
+        .split(" ")
+        .map(part => part.charAt(0).toLocaleUpperCase() + part.slice(1).toLocaleLowerCase())
+        .join(" ");
+    }
+
+    function createLoveTexture(fillStyle = "rgba(255, 190, 220, 0.98)", shadowColor = "rgba(255, 120, 190, 0.92)") {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1024;
+      canvas.height = 192;
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "700 92px Inter, Arial, sans-serif";
+      ctx.shadowColor = shadowColor;
+      ctx.shadowBlur = 28;
+      ctx.fillStyle = fillStyle;
+      ctx.fillText("I love you", canvas.width / 2, canvas.height / 2);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.needsUpdate = true;
+      return texture;
+    }
+
+    function createCircleTexture(inner = "rgba(255,255,255,1)", mid = "rgba(255,220,237,0.9)", outer = "rgba(255,157,201,0)") {
+      const canvas = document.createElement("canvas");
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext("2d");
+      const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gradient.addColorStop(0, inner);
+      gradient.addColorStop(0.18, mid);
+      gradient.addColorStop(0.56, outer);
+      gradient.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 64, 64);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    }
+
+    function createLovePointCloud(count, texture, size, opacity = 1) {
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          uMap: { value: texture },
+          uSize: { value: size },
+          uScale: { value: 1 },
+          uOpacity: { value: opacity }
+        },
+        vertexShader: `
+          uniform float uSize;
+          uniform float uScale;
+          void main() {
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = clamp(uSize * uScale / max(0.1, -mvPosition.z), 2.0, 170.0);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D uMap;
+          uniform float uOpacity;
+          void main() {
+            const float bandHeight = 0.19;
+            const float bandMin = (1.0 - bandHeight) * 0.5;
+            const float bandMax = bandMin + bandHeight;
+            if (gl_PointCoord.y < bandMin || gl_PointCoord.y > bandMax) discard;
+            vec2 uv = vec2(gl_PointCoord.x, 1.0 - ((gl_PointCoord.y - bandMin) / bandHeight));
+            vec4 texel = texture2D(uMap, uv);
+            if (texel.a < 0.012) discard;
+            gl_FragColor = vec4(texel.rgb, texel.a * uOpacity);
+          }
+        `,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.NormalBlending
+      });
+
+      const points = new THREE.Points(geometry, material);
+      points.frustumCulled = false;
+      return { points, positions };
+    }
+
+    function createStarPointCloud(count, texture, size, opacity = 1) {
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      const material = new THREE.PointsMaterial({
+        color: 0xffd7e9,
+        map: texture,
+        size,
+        sizeAttenuation: true,
+        transparent: true,
+        opacity,
+        alphaTest: 0.01,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      });
+      const points = new THREE.Points(geometry, material);
+      points.frustumCulled = false;
+      return { points, positions };
+    }
+
+    function createDotPointCloud(count, texture, size, opacity = 1) {
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      const material = new THREE.PointsMaterial({
+        color: 0xffffff,
+        map: texture,
+        size,
+        sizeAttenuation: true,
+        transparent: true,
+        opacity,
+        alphaTest: 0.02,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      });
+      const points = new THREE.Points(geometry, material);
+      points.frustumCulled = false;
+      return { points, positions };
+    }
+
+    function updateLovePointScale() {
+      if (!renderer || !camera || !corePoints || !orbitPoints) return;
+      const drawingBufferSize = new THREE.Vector2();
+      renderer.getDrawingBufferSize(drawingBufferSize);
+      const scale = drawingBufferSize.y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
+      corePoints.material.uniforms.uScale.value = scale;
+      orbitPoints.material.uniforms.uScale.value = scale;
+      if (namePoints?.material?.uniforms?.uScale) namePoints.material.uniforms.uScale.value = scale;
+    }
+
+    function generateHeartTargets(count, yOffset = 0.25) {
+      const result = new Float32Array(count * 3);
+      let made = 0;
+      let safety = 0;
+      while (made < count && safety < count * 150) {
+        safety++;
+        const x = THREE.MathUtils.randFloat(-1.18, 1.18);
+        const y = THREE.MathUtils.randFloat(-1.08, 1.22);
+        const equation = Math.pow(x * x + y * y - 1, 3) - x * x * Math.pow(y, 3);
+        if (equation > 0) continue;
+
+        const edge = Math.min(1, Math.max(0.15, 1.1 - Math.hypot(x * 0.7, y * 0.65)));
+        const z = THREE.MathUtils.randFloatSpread(2.35 * edge + 0.22);
+        const index = made * 3;
+        result[index] = x * 4.15;
+        result[index + 1] = y * 3.75 + yOffset;
+        result[index + 2] = z;
+        made++;
+      }
+      return result;
+    }
+
+    function generateTextTargets(text, count, options = {}) {
+      const canvas = document.createElement("canvas");
+      const width = 1800;
+      const height = 620;
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      const maxFont = options.maxFont || 390;
+      const minFont = options.minFont || 110;
+      let fontSize = maxFont;
+      const family = "Inter, Arial, sans-serif";
+      do {
+        ctx.font = `900 ${fontSize}px ${family}`;
+        if (ctx.measureText(text).width <= width * 0.88) break;
+        fontSize -= 5;
+      } while (fontSize > minFont);
+
+      ctx.font = `900 ${fontSize}px ${family}`;
+      ctx.fillText(text, width / 2, height / 2 + 7);
+      const image = ctx.getImageData(0, 0, width, height);
+      const data = image.data;
+      const step = options.step || 5;
+      const threshold = options.threshold || 72;
+      const edgeCandidates = [];
+      const fillCandidates = [];
+      let minX = width;
+      let maxX = 0;
+      let minY = height;
+      let maxY = 0;
+
+      const alphaAt = (x, y) => {
+        if (x < 0 || y < 0 || x >= width || y >= height) return 0;
+        return data[(Math.floor(y) * width + Math.floor(x)) * 4 + 3];
+      };
+
+      for (let y = 0; y < height; y += step) {
+        for (let x = 0; x < width; x += step) {
+          if (alphaAt(x, y) <= threshold) continue;
+          minX = Math.min(minX, x);
+          maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y);
+
+          const edge =
+            alphaAt(x - step, y) <= threshold ||
+            alphaAt(x + step, y) <= threshold ||
+            alphaAt(x, y - step) <= threshold ||
+            alphaAt(x, y + step) <= threshold;
+          (edge ? edgeCandidates : fillCandidates).push([x, y]);
+        }
+      }
+
+      if (!edgeCandidates.length && !fillCandidates.length) return generateHeartTargets(count);
+
+      const seedFromText = [...text].reduce((acc, char) => ((acc * 31) + char.charCodeAt(0)) >>> 0, 2166136261);
+      const random = (() => {
+        let state = seedFromText || 1;
+        return () => {
+          state = (state * 1664525 + 1013904223) >>> 0;
+          return state / 4294967296;
+        };
+      })();
+
+      function selectStratified(points, needed) {
+        if (!points.length || needed <= 0) return [];
+        const binCount = Math.max(18, Math.min(84, text.length * 14));
+        const bins = Array.from({ length: binCount }, () => []);
+        const span = Math.max(1, maxX - minX);
+
+        for (const point of points) {
+          const index = Math.min(binCount - 1, Math.floor(((point[0] - minX) / span) * binCount));
+          bins[index].push(point);
+        }
+
+        for (const bin of bins) {
+          for (let i = bin.length - 1; i > 0; i--) {
+            const j = Math.floor(random() * (i + 1));
+            [bin[i], bin[j]] = [bin[j], bin[i]];
+          }
+        }
+
+        const selected = [];
+        let cursor = Math.floor(random() * binCount);
+        while (selected.length < needed) {
+          let progressed = false;
+          for (let offset = 0; offset < binCount && selected.length < needed; offset++) {
+            const bin = bins[(cursor + offset) % binCount];
+            if (bin.length) {
+              selected.push(bin.pop());
+              progressed = true;
+            }
+          }
+          cursor = (cursor + 1) % binCount;
+          if (!progressed) break;
+        }
+
+        if (selected.length < needed) {
+          const source = points.length ? points : selected;
+          for (let i = selected.length; i < needed; i++) {
+            selected.push(source[i % source.length]);
+          }
+        }
+        return selected;
+      }
+
+      const edgeRatio = options.edgeRatio ?? 0.56;
+      const wantedEdges = Math.min(count, Math.round(count * edgeRatio));
+      const selected = [
+        ...selectStratified(edgeCandidates, wantedEdges),
+        ...selectStratified(fillCandidates.length ? fillCandidates : edgeCandidates, count - wantedEdges)
+      ];
+
+      const result = new Float32Array(count * 3);
+      const boundsWidth = Math.max(1, maxX - minX);
+      const boundsHeight = Math.max(1, maxY - minY);
+      let scaleX = options.scaleX || 0.006;
+      let scaleY = options.scaleY || scaleX;
+
+      if (options.targetWidth || options.targetHeight) {
+        const sx = options.targetWidth ? options.targetWidth / boundsWidth : Number.POSITIVE_INFINITY;
+        const sy = options.targetHeight ? options.targetHeight / boundsHeight : Number.POSITIVE_INFINITY;
+        const uniformScale = Math.min(sx, sy);
+        scaleX = Number.isFinite(uniformScale) ? uniformScale : scaleX;
+        scaleY = Number.isFinite(uniformScale) ? uniformScale : scaleY;
+      }
+
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+      const yOffset = options.yOffset || 0;
+      const jitter = options.jitter ?? 0.00035;
+      const depth = options.depth ?? 0.0025;
+
+      for (let i = 0; i < count; i++) {
+        const source = selected[i % selected.length];
+        const index = i * 3;
+        result[index] = (source[0] - centerX) * scaleX + THREE.MathUtils.randFloatSpread(jitter);
+        result[index + 1] = (centerY - source[1]) * scaleY + yOffset + THREE.MathUtils.randFloatSpread(jitter);
+        result[index + 2] = THREE.MathUtils.randFloatSpread(depth);
+      }
+      return result;
+    }
+
+    function mergeHeartAndName() {
+      return generateTextTargets("princess", CONFIG.nameCount, {
+        maxFont: 278,
+        minFont: 96,
+        step: 4,
+        scaleX: 0.00655,
+        scaleY: 0.00655,
+        depth: 0.0015,
+        jitter: 0.00045,
+        yOffset: 0.23
+      });
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function initThree() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.1, 100);
+      camera.position.set(0, 0.25, 13.0);
+
+      renderer = new THREE.WebGLRenderer({
+        canvas: UI.canvas,
+        antialias: true,
+        alpha: true,
+        powerPreference: "high-performance"
+      });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.setSize(innerWidth, innerHeight, false);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.setClearColor(0x000000, 0);
+
+      const loveTexture = createLoveTexture();
+      const whiteDotTexture = createCircleTexture("rgba(255,255,255,1)", "rgba(255,255,255,1)", "rgba(255,255,255,0.46)");
+      const starTexture = createCircleTexture("rgba(255,255,255,1)", "rgba(255,245,252,0.98)", "rgba(255,205,232,0.34)");
+
+      const core = createLovePointCloud(CONFIG.coreCount, loveTexture, 0.92, 0.98);
+      corePoints = core.points;
+      corePositions = core.positions;
+      scene.add(corePoints);
+
+      const orbit = createLovePointCloud(CONFIG.orbitCount, loveTexture, 0.58, 0.68);
+      orbitPoints = orbit.points;
+      orbitPositions = orbit.positions;
+      scene.add(orbitPoints);
+
+      const nameCloud = createDotPointCloud(CONFIG.nameCount, whiteDotTexture, 0.126, 1);
+      namePoints = nameCloud.points;
+      namePositions = nameCloud.positions;
+      namePoints.visible = false;
+      scene.add(namePoints);
+
+      const stars = createStarPointCloud(CONFIG.starCount, starTexture, 0.13, 1);
+      starPoints = stars.points;
+      const starPositions = stars.positions;
+      for (let i = 0; i < CONFIG.starCount; i++) {
+        const index = i * 3;
+        starPositions[index] = THREE.MathUtils.randFloatSpread(32);
+        starPositions[index + 1] = THREE.MathUtils.randFloatSpread(25);
+        starPositions[index + 2] = THREE.MathUtils.randFloat(-12, -2.5);
+      }
+      starPoints.geometry.attributes.position.needsUpdate = true;
+      scene.add(starPoints);
+      updateLovePointScale();
+
+      heartTargets = generateHeartTargets(CONFIG.coreCount, 0.2);
+      nameTargets = mergeHeartAndName();
+      wordTargets.YOUR = generateTextTargets("YOUR", CONFIG.coreCount, { maxFont: 390, minFont: 140, step: 4, targetWidth: 4.65, targetHeight: 2.28, depth: 0.002, jitter: 0.00023, edgeRatio: 0.59 });
+      wordTargets.EYES = generateTextTargets("EYES", CONFIG.coreCount, { maxFont: 390, minFont: 140, step: 4, targetWidth: 4.55, targetHeight: 2.28, depth: 0.002, jitter: 0.00023, edgeRatio: 0.59 });
+      wordTargets.BLOW = generateTextTargets("BLOW", CONFIG.coreCount, { maxFont: 380, minFont: 138, step: 4, targetWidth: 4.65, targetHeight: 2.28, depth: 0.002, jitter: 0.00023, edgeRatio: 0.59 });
+      wordTargets.MY = generateTextTargets("MY", CONFIG.coreCount, { maxFont: 430, minFont: 150, step: 4, targetWidth: 4.15, targetHeight: 2.35, depth: 0.002, jitter: 0.00025, edgeRatio: 0.58 });
+      wordTargets.MIND = generateTextTargets("MIND", CONFIG.coreCount, { maxFont: 385, minFont: 140, step: 4, targetWidth: 4.65, targetHeight: 2.28, depth: 0.002, jitter: 0.00023, edgeRatio: 0.59 });
+
+      setPositions(heartTargets);
+      setNamePositions(nameTargets);
+      setOrbitVisibility(false);
+      corePoints.visible = false;
+      namePoints.visible = false;
+      clock = new THREE.Clock();
+
+      addInteraction();
+      addOrientationSupport();
+      addEventListener("resize", onResize, { passive: true });
+      animate();
+
+      visualReady = true;
+      UI.canvas.classList.add("ready");
+      UI.openButton.disabled = false;
+      UI.openButton.textContent = "Open it";
+    }
+
+    function setPositions(targets) {
+      corePositions.set(targets);
+      corePoints.geometry.attributes.position.needsUpdate = true;
+      corePoints.geometry.computeBoundingSphere();
+    }
+
+    function setNamePositions(targets) {
+      namePositions.set(targets);
+      namePoints.geometry.attributes.position.needsUpdate = true;
+      namePoints.geometry.computeBoundingSphere();
+    }
+
+    function createFlowMorph(targets, flowStrength = 0.8, duration = 1200) {
+      if (!corePositions || !corePoints) return;
+      coreMorph = {
+        from: new Float32Array(corePositions),
+        to: new Float32Array(targets),
+        start: performance.now(),
+        duration,
+        flowStrength
+      };
+    }
+
+    function updateCoreMorph(now) {
+      if (!coreMorph || !corePoints) return;
+      const t = Math.min(1, (now - coreMorph.start) / coreMorph.duration);
+      const ease = t < 0.5
+        ? 4 * t * t * t
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      const wave = Math.sin(t * Math.PI);
+      for (let i = 0; i < corePositions.length; i += 3) {
+        const fx = coreMorph.from[i];
+        const fy = coreMorph.from[i + 1];
+        const fz = coreMorph.from[i + 2];
+        const tx = coreMorph.to[i];
+        const ty = coreMorph.to[i + 1];
+        const tz = coreMorph.to[i + 2];
+        const dx = tx - fx;
+        const dy = ty - fy;
+        const dz = tz - fz;
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len;
+        const ny = dx / len;
+        const particleIndex = i / 3;
+        const phase = (particleIndex % 9) / 9 * Math.PI * 2;
+        const amp = coreMorph.flowStrength * (0.22 + (particleIndex % 7) * 0.045) * wave;
+        corePositions[i] = THREE.MathUtils.lerp(fx, tx, ease) + nx * Math.sin(phase + t * Math.PI * 1.2) * amp;
+        corePositions[i + 1] = THREE.MathUtils.lerp(fy, ty, ease) + ny * Math.cos(phase + t * Math.PI * 1.15) * amp;
+        corePositions[i + 2] = THREE.MathUtils.lerp(fz, tz, ease) + Math.sin(phase + t * Math.PI) * (coreMorph.flowStrength * 0.14) * wave;
+      }
+      corePoints.geometry.attributes.position.needsUpdate = true;
+      if (t >= 1) coreMorph = null;
+    }
+
+    function setOrbitVisibility(visible) {
+      orbitPoints.visible = visible;
+    }
+
+    function setStage(nextStage) {
+      stage = nextStage;
+      corePoints.visible = nextStage !== "intro";
+      namePoints.visible = false;
+      corePoints.rotation.set(0, 0, 0);
+      corePoints.position.set(0, nextStage === "final" ? 0.85 : 0.2, 0);
+      orbitPoints.position.copy(corePoints.position);
+      namePoints.position.copy(corePoints.position);
+      dragYaw = 0;
+      dragPitch = 0;
+
+      if (nextStage === "heart") {
+        coreMorph = null;
+        setPositions(heartTargets);
+        setOrbitVisibility(true);
+        corePoints.material.uniforms.uSize.value = 0.92;
+        corePoints.material.uniforms.uOpacity.value = 0.98;
+        triggerMoment(72, 580);
+        audio.heartbeat();
+      } else if (nextStage === "heart-name" || nextStage === "final") {
+        coreMorph = null;
+        autoAngle = 0;
+        setPositions(heartTargets);
+        setNamePositions(nameTargets);
+        namePoints.visible = true;
+        setOrbitVisibility(true);
+        corePoints.material.uniforms.uSize.value = nextStage === "final" ? 0.86 : 0.92;
+        corePoints.material.uniforms.uOpacity.value = 0.98;
+        namePoints.material.size = nextStage === "final" ? 0.118 : 0.126;
+        namePoints.material.opacity = 1;
+        triggerMoment(nextStage === "final" ? [45, 70, 45] : 55, 620);
+        audio.chime(nextStage === "final" ? 540 : 690, 1.05, 0.12);
+      } else if (wordTargets[nextStage]) {
+        createFlowMorph(wordTargets[nextStage], 1.0, CONFIG.wordFlowMs);
+        namePoints.visible = false;
+        setOrbitVisibility(false);
+        corePoints.position.set(0, 0.1, 0);
+        corePoints.material.uniforms.uSize.value = 0.54;
+        corePoints.material.uniforms.uOpacity.value = 0.99;
+        triggerMoment(35, 430);
+        const notes = { YOUR: 620, EYES: 700, BLOW: 780, MY: 860, MIND: 960 };
+        audio.chime(notes[nextStage], 0.78, 0.145);
+      }
+    }
+
+    function triggerMoment(vibration, flashDuration = 600) {
+      try {
+        if (navigator.vibrate) navigator.vibrate(vibration);
+      } catch (_) {}
+      UI.flash.classList.remove("pulse");
+      void UI.flash.offsetWidth;
+      UI.flash.style.animationDuration = `${flashDuration}ms`;
+      UI.flash.classList.add("pulse");
+    }
+
+    function wait(ms, token) {
+      return new Promise(resolve => setTimeout(() => resolve(token === stageToken), ms));
+    }
+
+    async function runSequence({ skipIntro = false } = {}) {
+      if (!visualReady) return;
+      const token = ++stageToken;
+      UI.intro.classList.add("hidden");
+      UI.final.classList.add("hidden");
+      UI.final.classList.remove("shown");
+      UI.soundButton.classList.add("visible");
+      UI.status.classList.add("visible");
+      UI.status.textContent = "A little universe is forming";
+
+      if (!skipIntro) {
+        const orientationPermission = requestOrientationPermission();
+        const audioStart = audio.start();
+        await Promise.allSettled([orientationPermission, audioStart]);
+      } else if (audio.context?.state === "suspended") {
+        await audio.context.resume();
+      }
+
+      UI.status.classList.remove("visible");
+      setStage("heart-name");
+      if (!(await wait(CONFIG.heartNameMs, token))) return;
+
+      for (const word of ["YOUR", "EYES", "BLOW", "MY", "MIND"]) {
+        setStage(word);
+        if (!(await wait(CONFIG.wordMs, token))) return;
+      }
+
+      setStage("final");
+      if (!(await wait(CONFIG.finaleDelayMs, token))) return;
+      UI.final.classList.remove("hidden");
+      requestAnimationFrame(() => UI.final.classList.add("shown"));
+    }
+
+    function getPointerDistance() {
+      const points = Array.from(activePointers.values());
+      if (points.length < 2) return 0;
+      return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+    }
+
+    function clampZoom(value) {
+      return THREE.MathUtils.clamp(value, 0.62, 2.0);
+    }
+
+    function addInteraction() {
+      UI.canvas.addEventListener("pointerdown", event => {
+        if (!stage.includes("heart") && stage !== "final") return;
+        activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (activePointers.size === 1) {
+          pointerActive = true;
+          pointerX = event.clientX;
+          pointerY = event.clientY;
+        } else if (activePointers.size === 2) {
+          pointerActive = false;
+          pinchStartDistance = getPointerDistance();
+          pinchStartZoom = zoomScale;
+        }
+        UI.canvas.setPointerCapture?.(event.pointerId);
+      });
+
+      UI.canvas.addEventListener("pointermove", event => {
+        if (!activePointers.has(event.pointerId)) return;
+        activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+        if (activePointers.size >= 2) {
+          const distance = getPointerDistance();
+          if (pinchStartDistance > 0 && distance > 0) {
+            zoomScale = clampZoom(pinchStartZoom * distance / pinchStartDistance);
+          }
+          return;
+        }
+
+        if (!pointerActive) return;
+        const dx = event.clientX - pointerX;
+        const dy = event.clientY - pointerY;
+        pointerX = event.clientX;
+        pointerY = event.clientY;
+        dragYaw += dx * 0.0062;
+        dragPitch = THREE.MathUtils.clamp(dragPitch + dy * 0.0042, -0.55, 0.55);
+      });
+
+      const endPointer = event => {
+        activePointers.delete(event.pointerId);
+        if (activePointers.size < 2) pinchStartDistance = 0;
+        if (activePointers.size === 1) {
+          const remaining = Array.from(activePointers.values())[0];
+          pointerActive = true;
+          pointerX = remaining.x;
+          pointerY = remaining.y;
+        } else {
+          pointerActive = false;
+        }
+        try { UI.canvas.releasePointerCapture?.(event.pointerId); } catch (_) {}
+      };
+
+      UI.canvas.addEventListener("pointerup", endPointer);
+      UI.canvas.addEventListener("pointercancel", endPointer);
+
+      UI.canvas.addEventListener("wheel", event => {
+        if (!stage.includes("heart") && stage !== "final") return;
+        event.preventDefault();
+        zoomScale = clampZoom(zoomScale * (event.deltaY > 0 ? 0.92 : 1.08));
+      }, { passive: false });
+    }
+
+    function addOrientationSupport() {
+      window.addEventListener("deviceorientation", handleOrientation, { passive: true });
+    }
+
+    async function requestOrientationPermission() {
+      try {
+        if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+          await DeviceOrientationEvent.requestPermission();
+        }
+      } catch (_) {}
+    }
+
+    function handleOrientation(event) {
+      if (event.gamma == null || event.beta == null) return;
+      tiltYaw = THREE.MathUtils.clamp(event.gamma / 42, -0.34, 0.34);
+      tiltPitch = THREE.MathUtils.clamp((event.beta - 35) / 90, -0.2, 0.2);
+    }
+
+    function updateOrbitParticles(elapsed) {
+      const heartVisible = stage === "heart" || stage === "heart-name" || stage === "final";
+      if (!heartVisible) return;
+
+      for (let i = 0; i < CONFIG.orbitCount; i++) {
+        const index = i * 3;
+        const ring = i % 3;
+        const phase = (i / CONFIG.orbitCount) * Math.PI * 2;
+        const speed = 0.17 + ring * 0.035;
+        const angle = phase + elapsed * speed * (ring === 1 ? -1 : 1);
+        const radiusX = 5.15 + ring * 0.58;
+        const radiusY = 3.45 + ring * 0.42;
+        const wobble = Math.sin(elapsed * 0.7 + i * 0.9) * 0.28;
+        orbitPositions[index] = Math.cos(angle) * radiusX;
+        orbitPositions[index + 1] = Math.sin(angle * (ring === 2 ? 1.1 : 1)) * radiusY * 0.53 + wobble;
+        orbitPositions[index + 2] = Math.sin(angle) * (2.2 + ring * 0.55);
+      }
+      orbitPoints.geometry.attributes.position.needsUpdate = true;
+    }
+
+    function animate(now = performance.now()) {
+      requestAnimationFrame(animate);
+      const dt = Math.min(0.05, (now - lastFrame) / 1000 || 0.016);
+      lastFrame = now;
+      const elapsed = clock?.getElapsedTime?.() || now / 1000;
+
+      if (corePoints) {
+        updateCoreMorph(now);
+        const isHeart = stage === "heart" || stage === "heart-name" || stage === "final";
+        if (isHeart) autoAngle += dt * 0.12;
+        const targetYaw = isHeart ? autoAngle + dragYaw + tiltYaw : 0;
+        const targetPitch = isHeart ? dragPitch + tiltPitch : 0;
+        corePoints.rotation.y += (targetYaw - corePoints.rotation.y) * Math.min(1, dt * 4.6);
+        corePoints.rotation.x += (targetPitch - corePoints.rotation.x) * Math.min(1, dt * 4.6);
+        orbitPoints.rotation.copy(corePoints.rotation);
+
+        const beat = isHeart ? 1 + Math.pow(Math.max(0, Math.sin(elapsed * Math.PI * 1.42)), 10) * 0.055 : 1;
+        const finalScale = stage === "final" ? 0.84 : 1;
+        const heartZoom = isHeart ? zoomScale : 1;
+        const combinedScale = beat * finalScale * heartZoom;
+        corePoints.scale.setScalar(combinedScale);
+        orbitPoints.scale.setScalar((1 + (beat - 1) * 0.55) * finalScale * heartZoom);
+
+        if (namePoints) {
+          namePoints.position.copy(corePoints.position);
+          namePoints.rotation.copy(corePoints.rotation);
+          namePoints.scale.setScalar(combinedScale);
+        }
+
+        updateOrbitParticles(elapsed);
+      }
+
+      if (starPoints) {
+        starPoints.rotation.y = elapsed * 0.007;
+        starPoints.material.opacity = 0.93 + Math.sin(elapsed * 1.15) * 0.07;
+      }
+
+      renderer?.render(scene, camera);
+    }
+
+    function onResize() {
+      if (!renderer || !camera) return;
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.setSize(innerWidth, innerHeight, false);
+      camera.position.z = innerWidth < 520 ? 14.0 : 13.0;
+      updateLovePointScale();
+    }
+
+    UI.openButton.addEventListener("click", () => runSequence({ skipIntro: false }));
+    UI.replayButton.addEventListener("click", () => runSequence({ skipIntro: true }));
+    UI.soundButton.addEventListener("click", async () => {
+      if (!audio.started) await audio.start();
+      isMuted = !isMuted;
+      audio.setMuted(isMuted);
+      UI.soundButton.classList.toggle("muted", isMuted);
+      UI.soundButton.textContent = isMuted ? "∅" : "♫";
+      UI.soundButton.setAttribute("aria-label", isMuted ? "Turn sound on" : "Mute sound");
+      triggerMoment(18, 260);
+    });
+
+    try {
+      THREE = await import(THREE_URL);
+      initThree();
+    } catch (error) {
+      console.error(error);
+      UI.intro.classList.add("hidden");
+      UI.error.classList.add("visible");
+    }
+  </script>
+</body>
+</html>
